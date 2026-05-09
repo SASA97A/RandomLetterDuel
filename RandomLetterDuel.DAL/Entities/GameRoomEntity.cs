@@ -15,5 +15,7 @@ namespace RandomLetterDuel.DAL.Entities
         public Guid? CurrentTurnPlayerId { get; set; }
 
         public List<PlayerEntity> Players { get; set; } = new();
+
+        public List<string> UsedWords { get; set; } = new();
     }
 }
