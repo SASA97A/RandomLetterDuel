@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="RandomLetterDuel.API/RandomLetterDuel.API.csproj" />
+  <Project Path="RandomLetterDuel.BLL.Tests/RandomLetterDuel.BLL.Tests.csproj" />
+  <Project Path="RandomLetterDuel.BLL/RandomLetterDuel.BLL.csproj" />
+  <Project Path="RandomLetterDuel.DAL.Tests/RandomLetterDuel.DAL.Tests.csproj" />
+  <Project Path="RandomLetterDuel.DAL/RandomLetterDuel.DAL.csproj" />
+  <Project Path="RandomLetterDuel.DTO/RandomLetterDuel.DTO.csproj" />
+  <Project Path="RandomLetterDuel.UI.Tests/RandomLetterDuel.UI.Tests.csproj" />
+  <Project Path="RandomLetterDuel.UI/RandomLetterDuel.UI.csproj" />
+</Solution>
