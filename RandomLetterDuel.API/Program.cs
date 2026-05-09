@@ -15,6 +15,19 @@ builder.Services.AddScoped<GameService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+//Swagger
+// link https://localhost:7197/swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(7197, lo => lo.UseHttps());
+});
+
+
+
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -22,7 +35,13 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseSwagger();
     app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        options.RoutePrefix = "swagger"; 
+    });
 }
 
 app.UseHttpsRedirection();

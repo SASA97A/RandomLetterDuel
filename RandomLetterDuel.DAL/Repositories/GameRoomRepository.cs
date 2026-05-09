@@ -59,6 +59,9 @@ namespace RandomLetterDuel.DAL.Repositories
                 GameRoom = gameRoom
             };
 
+            //Fix: Sätter tur till den första spelaren som går med i rummet
+            gameRoom.CurrentTurnPlayerId = gameRoom.Players.First().Id;
+
             await _context.Players.AddAsync(newPlayer);
 
             //gameRoom.Players.Add(newPlayer);
