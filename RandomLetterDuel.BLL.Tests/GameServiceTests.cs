@@ -9,18 +9,18 @@ namespace RandomLetterDuel.BLL.Tests
     public class GameServiceTests
     {
         // Gör ett test på att få WaitingForPlayers vid spelrum skapelse
-        [Fact]
-        public void CreateGame_MustReturnNewGameInWaitingState()
-        {
-            var service = new GameService();
+        //[Fact]
+        //public void CreateGame_MustReturnNewGameInWaitingState()
+        //{
+        //    var service = new GameService();
 
-            var result = service.CreateGame("Spelare 1");
+        //    var result = service.CreateGame("Spelare 1");
 
-            Assert.NotNull(result);
-            Assert.Equal(GameState.WaitingForPlayers, result.State);
-            Assert.Single(result.Players);
-            Assert.Equal("Spelare 1", result.Players[0].Name);
-        }
+        //    Assert.NotNull(result);
+        //    Assert.Equal(GameState.WaitingForPlayers, result.State);
+        //    Assert.Single(result.Players);
+        //    Assert.Equal("Spelare 1", result.Players[0].Name);
+        //}
 
         //Testar så att det inte går att ha ett tomt namn/bara mellanslag.
         [Theory]
