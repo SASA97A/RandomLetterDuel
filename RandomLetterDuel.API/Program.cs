@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using RandomLetterDuel.BLL;
 using RandomLetterDuel.DAL.Data;
+using RandomLetterDuel.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,7 +9,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<RandomLetterDuelDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddScoped<IGameRoomRepository, GameRoomRepository>();
 
+builder.Services.AddScoped<GameService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

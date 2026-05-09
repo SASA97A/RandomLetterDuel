@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RandomLetterDuel.DAL\RandomLetterDuel.DAL.csproj" />
     <ProjectReference Include="..\RandomLetterDuel.DTO\RandomLetterDuel.DTO.csproj" />
   </ItemGroup>
 

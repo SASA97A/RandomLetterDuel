@@ -1,12 +1,20 @@
-﻿using RandomLetterDuel.DTO;
+﻿using RandomLetterDuel.DAL.Entities;
+using RandomLetterDuel.DAL.Repositories;
+using RandomLetterDuel.DTO;
 
 namespace RandomLetterDuel.BLL
 {
     public class GameService
     {
+        private readonly IGameRoomRepository _gameRoomRepository;
         private readonly Random _random = new Random();
 
-        public GameRoomResponseDto CreateGame(CreateGameRequestDto request)
+        public GameService(IGameRoomRepository gameRoomRepository) 
+        {
+            _gameRoomRepository = gameRoomRepository;
+        }
+
+        public async Task<GameRoomResponseDto> CreateGame(CreateGameRequestDto request)
         {
             // Validerar input
             if (request == null ) throw new ArgumentNullException(nameof(request));
@@ -16,40 +24,116 @@ namespace RandomLetterDuel.BLL
                 throw new ArgumentException("Spelarenamn är ogiltigt");
             }
 
-            string roomCode = GenerateRoomCode(6);
-
-            return new GameRoomResponseDto
+            var entity = new GameRoomEntity
             {
                 Id = Guid.NewGuid(),
-                RoomCode = roomCode,
+                RoomCode = GenerateRoomCode(6),
                 State = GameState.WaitingForPlayers,
-                Players = new List<PlayerDto>
-                {
-                    new PlayerDto 
-                    { 
-                        Id = Guid.NewGuid(),
-                        Name = request.PlayerName.Trim(),
-                        Score = 0 }
-                    }
-                };
-        }
-
-
-        public GameRoomResponseDto JoinGame(JoinGameRequestDto request)
-        {
-            // 1. Här skulle du normalt hämta spelet från DAL via RoomCode
-            // 2. Kontrollera att namnet är giltigt
-            // 3. Lägg till spelaren i listan
-            // 4. Ändra State till InProgress
-
-            // (För prototypen kan du simulera detta genom att returnera ett uppdaterat objekt)
-            return new GameRoomResponseDto
-            {
-                State = GameState.InProgress,
-                // ... övrig data
+                UsedWords = new List<string>()
             };
+
+            entity.Players.Add(new PlayerEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = request.PlayerName.Trim(),
+                Score = 0
+            });
+
+            await _gameRoomRepository.AddAsync(entity);
+            await _gameRoomRepository.SaveChangesAsync();
+
+            return MapToResponse(entity);
+
         }
 
+
+        public async Task<GameRoomResponseDto> JoinGame(JoinGameRequestDto request)
+        {
+            var playerEntity = await _gameRoomRepository.JoinGameAsync(request);
+
+            if (playerEntity == null)
+            {
+                var existingRoom = await _gameRoomRepository.GetByRoomCodeAsync(request.RoomCode);
+
+                if (existingRoom == null) return null;
+
+                return MapToResponse(existingRoom);
+            }
+
+            var updatedRoom = await _gameRoomRepository.GetByRoomCodeAsync(request.RoomCode);
+            return MapToResponse(updatedRoom!);
+        }
+
+
+        public async Task<GameRoomResponseDto> SubmitWordAsync(MakeMoveRequestDto request)
+        {
+            
+            var gameRoom = await _gameRoomRepository.GetByIdAsync(request.GameId);
+
+            if (gameRoom == null) { throw new Exception("Spelet hittades inte"); }
+
+            if (gameRoom.State != GameState.InProgress)
+            {
+                throw new InvalidOperationException("Spelet är inte igång (väntar på spelare eller är avslutat).");
+            }
+
+            if (gameRoom.CurrentTurnPlayerId != request.PlayerId)
+            {
+                throw new InvalidOperationException("Det är inte din tur!");
+            }
+
+            string word = request.Word?.Trim().ToLower();
+
+            //Regler för ord
+
+            if (string.IsNullOrWhiteSpace(request.Word))
+            {
+                throw new ArgumentException("Ordet får inte vara tomt.");
+            }
+
+            if (word.Length < 3)
+            {
+                throw new ArgumentException("Ordet är för kort.");
+            }
+
+            if (gameRoom.RequiredLetter.HasValue && !word.StartsWith(gameRoom.RequiredLetter.Value.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException($"Ordet måste börja med bokstaven '{gameRoom.RequiredLetter.Value}'");
+            }
+
+            if (gameRoom.UsedWords.Contains(word))
+            {
+                throw new ArgumentException("Ordet har redan använts");
+            }
+
+            if (word.Length > 20)
+            {
+                throw new ArgumentException("Ordet är för långt (max 20 tecken).");
+            }
+
+
+            //Väljer nästa bokstav
+            char nextLetter = char.ToUpper(word.Last());
+            gameRoom.RequiredLetter = nextLetter;
+
+            //Lägger till ordet i listan över använda ord
+            gameRoom.UsedWords.Add(word);
+
+            //uppdatera poäng
+            var player = gameRoom.Players.FirstOrDefault(p => p.Id == request.PlayerId);
+            if (player != null) player.Score += word.Length;
+
+            //Växla tur
+            var nextPlayer = gameRoom.Players.FirstOrDefault(p => p.Id != request.PlayerId);
+            if (nextPlayer != null) gameRoom.CurrentTurnPlayerId = nextPlayer.Id;
+
+            //Spara till DB
+            await _gameRoomRepository.SaveChangesAsync();
+
+            //Returnera uppdaterad spelstatus till UI
+            return MapToResponse(gameRoom);
+            
+        }      
 
         private string GenerateRoomCode(int length)
         {
@@ -58,9 +142,24 @@ namespace RandomLetterDuel.BLL
             return new string(Enumerable.Repeat(chars, length).Select(s => s[_random.Next(s.Length)]).ToArray());
         }
 
-
-
-
+        private GameRoomResponseDto MapToResponse(GameRoomEntity entity)
+        {
+            return new GameRoomResponseDto
+            {
+                Id = entity.Id,
+                RoomCode = entity.RoomCode,
+                State = entity.State,
+                RequiredLetter = entity.RequiredLetter,
+                CurrentTurnPlayerId = entity.CurrentTurnPlayerId ?? Guid.Empty,
+                UsedWords = entity.UsedWords,
+                Players = entity.Players.Select(p => new PlayerDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Score = p.Score
+                }).ToList(),
+            };
+        }
 
 
     }

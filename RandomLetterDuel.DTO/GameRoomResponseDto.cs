@@ -8,9 +8,8 @@
 
         //Bokstaven som nästa ord måste börja på
         public char? RequiredLetter { get; set; }
-
         public List<PlayerDto> Players { get; set; } = new();
-
+        public List<string> UsedWords { get; set; } = new();
         public Guid CurrentTurnPlayerId { get; set; }
     }
 }

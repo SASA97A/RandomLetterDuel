@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\RandomLetterDuel.BLL\RandomLetterDuel.BLL.csproj" />
     <ProjectReference Include="..\RandomLetterDuel.DAL\RandomLetterDuel.DAL.csproj" />
+    <ProjectReference Include="..\RandomLetterDuel.DTO\RandomLetterDuel.DTO.csproj" />
   </ItemGroup>
 
 </Project>

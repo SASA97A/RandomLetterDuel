@@ -27,6 +27,13 @@ namespace RandomLetterDuel.DAL.Repositories
                 .FirstOrDefaultAsync(g => g.RoomCode == roomCode);
         }
 
+        public async Task<GameRoomEntity?> GetByIdAsync(Guid id)
+        {
+            return await _context.GameRooms
+                .Include(g => g.Players)
+                .FirstOrDefaultAsync(g => g.Id == id);
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
@@ -35,8 +42,8 @@ namespace RandomLetterDuel.DAL.Repositories
         public async Task<PlayerEntity?> JoinGameAsync(JoinGameRequestDto request)
         {
             var gameRoom = await _context.GameRooms
-                .Include(g => g.Players)
-                .FirstOrDefaultAsync(g => g.RoomCode == request.RoomCode);
+            .Include(g => g.Players)
+            .FirstOrDefaultAsync(g => g.RoomCode == request.RoomCode);
 
             if (gameRoom == null || gameRoom.Players.Count >= 2)
             {
@@ -48,13 +55,22 @@ namespace RandomLetterDuel.DAL.Repositories
                 Id = Guid.NewGuid(),
                 Name = request.PlayerName.Trim(),
                 Score = 0,
-                GameRoomId = gameRoom.Id
+                GameRoomId = gameRoom.Id,
+                GameRoom = gameRoom
             };
 
-            gameRoom.Players.Add(newPlayer);
+            await _context.Players.AddAsync(newPlayer);
+
+            //gameRoom.Players.Add(newPlayer);
             gameRoom.State = GameState.InProgress;
 
             await _context.SaveChangesAsync();
+
+            // Reload players
+            await _context.Entry(gameRoom)
+                .Collection(g => g.Players)
+                .LoadAsync();
+
             return newPlayer;
         }
     }

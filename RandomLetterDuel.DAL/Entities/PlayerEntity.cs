@@ -12,5 +12,7 @@ namespace RandomLetterDuel.DAL.Entities
         public int Score { get; set; }
 
         public Guid GameRoomId { get; set; }
+
+        public GameRoomEntity GameRoom { get; set; } = null!;
     }
 }

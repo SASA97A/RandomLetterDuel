@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RandomLetterDuel.DAL.Data;
 
@@ -11,9 +12,11 @@ using RandomLetterDuel.DAL.Data;
 namespace RandomLetterDuel.DAL.Migrations
 {
     [DbContext(typeof(RandomLetterDuelDbContext))]
-    partial class RandomLetterDuelDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260509214449_AddPlayerRelationAndUsedWordsConversion")]
+    partial class AddPlayerRelationAndUsedWordsConversion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

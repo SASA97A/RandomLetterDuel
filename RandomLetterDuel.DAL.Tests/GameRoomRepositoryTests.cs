@@ -129,5 +129,64 @@ namespace RandomLetterDuel.DAL.Tests
             Assert.True(alreadyUsed, "Ordet bör betraktas som en duplicate trots olika case");
 
         }
+
+        [Fact]
+        public async Task GetByIdAsync_MustReturnGameRoomWithPlayers()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var repository = new GameRoomRepository(context);
+            var roomId = Guid.NewGuid();
+            var gameRoom = new GameRoomEntity
+            {
+                Id = roomId,
+                RoomCode = "IDTEST"
+            };
+            gameRoom.Players.Add(new PlayerEntity { Name = "Spelare1", GameRoom = gameRoom });
+
+            await context.GameRooms.AddAsync(gameRoom);
+            await context.SaveChangesAsync();
+
+            // Act
+            var result = await repository.GetByIdAsync(roomId);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("IDTEST", result.RoomCode);
+            Assert.Single(result.Players);
+            Assert.Equal("Spelare1", result.Players[0].Name);
+        }
+
+        [Fact]
+        public async Task JoinGameAsync_SuccessfulJoin_MustAddPlayerAndChangeState()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var repository = new GameRoomRepository(context);
+            var gameRoom = new GameRoomEntity
+            {
+                RoomCode = "JOIN01",
+                State = GameState.WaitingForPlayers
+            };
+            gameRoom.Players.Add(new PlayerEntity { Name = "Värd", GameRoom = gameRoom });
+
+            await context.GameRooms.AddAsync(gameRoom);
+            await context.SaveChangesAsync();
+
+            var joinRequest = new JoinGameRequestDto { PlayerName = "Gäst", RoomCode = "JOIN01" };
+
+            // Act
+            var result = await repository.JoinGameAsync(joinRequest);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Gäst", result.Name);
+
+            // Kontrollerar att rummet i databasen uppdaterats
+            var updatedRoom = await context.GameRooms.Include(g => g.Players).FirstAsync(g => g.RoomCode == "JOIN01");
+            Assert.Equal(2, updatedRoom.Players.Count);
+            Assert.Equal(GameState.InProgress, updatedRoom.State);
+        }
+
     }
 }
