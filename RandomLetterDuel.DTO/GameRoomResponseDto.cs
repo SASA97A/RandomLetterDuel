@@ -11,5 +11,6 @@
         public List<PlayerDto> Players { get; set; } = new();
         public List<string> UsedWords { get; set; } = new();
         public Guid CurrentTurnPlayerId { get; set; }
+        public Guid? WinnerId { get; set; }
     }
 }

@@ -121,8 +121,20 @@ namespace RandomLetterDuel.BLL
 
             //uppdatera poäng
             var player = gameRoom.Players.FirstOrDefault(p => p.Id == request.PlayerId);
-            if (player != null) player.Score += word.Length;
+            if (player != null) 
+            {
+                player.Score += word.Length;
 
+                if (player.Score >= 50)
+                {
+                    gameRoom.State = GameState.GameFinished;
+                    gameRoom.WinnerId = player.Id;
+
+                    await _gameRoomRepository.SaveChangesAsync();
+                    return MapToResponse(gameRoom);
+                }
+            }
+            
             //Växla tur
             var nextPlayer = gameRoom.Players.FirstOrDefault(p => p.Id != request.PlayerId);
             if (nextPlayer != null) gameRoom.CurrentTurnPlayerId = nextPlayer.Id;
@@ -152,6 +164,7 @@ namespace RandomLetterDuel.BLL
                 RequiredLetter = entity.RequiredLetter,
                 CurrentTurnPlayerId = entity.CurrentTurnPlayerId ?? Guid.Empty,
                 UsedWords = entity.UsedWords,
+                WinnerId = entity.WinnerId,
                 Players = entity.Players.Select(p => new PlayerDto
                 {
                     Id = p.Id,

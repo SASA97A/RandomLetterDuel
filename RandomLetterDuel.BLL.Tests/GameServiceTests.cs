@@ -339,5 +339,96 @@ namespace RandomLetterDuel.BLL.Tests
             Assert.Equal("Ordet är för kort.", exception.Message);
         }
 
+        [Fact]
+        public async Task SubmitWord_ScoreBelowLimit_MustKeepGameInProgress()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RandomLetterDuelDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new RandomLetterDuelDbContext(options);
+            var repo = new GameRoomRepository(context);
+            var service = new GameService(repo);
+
+            var roomId = Guid.NewGuid();
+            var playerId = Guid.NewGuid();
+
+            var room = new GameRoomEntity
+            {
+                Id = roomId,
+                RoomCode = "PLAYON",
+                State = GameState.InProgress,
+                CurrentTurnPlayerId = playerId
+            };
+
+            room.Players.Add(new PlayerEntity { Id = playerId, Name = "Spelare 1", Score = 10, GameRoom = room });
+            room.Players.Add(new PlayerEntity { Id = Guid.NewGuid(), Name = "Spelare 2", GameRoom = room });
+
+            context.GameRooms.Add(room);
+            await context.SaveChangesAsync();
+
+            var request = new MakeMoveRequestDto { GameId = roomId, PlayerId = playerId, Word = "KATT" };
+
+            // Act
+            var result = await service.SubmitWordAsync(request);
+
+            // Assert
+            Assert.Equal(GameState.InProgress, result.State);
+            Assert.Null(result.WinnerId);
+            Assert.Equal(14, result.Players.First(p => p.Id == playerId).Score);
+        }
+
+
+        [Theory]
+        [InlineData(47, "KATT")] 
+        [InlineData(45, "RADIO")] 
+        public async Task SubmitWord_ReachingScoreLimit_MustSetGameStateToFinishedAndSetWinner(int initialScore, string winningWord)
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RandomLetterDuelDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new RandomLetterDuelDbContext(options);
+            var repo = new GameRoomRepository(context);
+            var service = new GameService(repo);
+
+            var roomId = Guid.NewGuid();
+            var playerId = Guid.NewGuid();
+
+            var room = new GameRoomEntity
+            {
+                Id = roomId,
+                RoomCode = "WINNER",
+                State = GameState.InProgress,
+                CurrentTurnPlayerId = playerId,
+                RequiredLetter = winningWord[0]
+            };
+
+            // Sätter spelarens poäng nära gränsen
+            var player = new PlayerEntity { Id = playerId, Name = "Vinnaren", Score = initialScore, GameRoom = room };
+            room.Players.Add(player);
+            room.Players.Add(new PlayerEntity { Id = Guid.NewGuid(), Name = "Förloraren", GameRoom = room });
+
+            context.GameRooms.Add(room);
+            await context.SaveChangesAsync();
+
+            var request = new MakeMoveRequestDto
+            {
+                GameId = roomId,
+                PlayerId = playerId,
+                Word = winningWord
+            };
+
+            // Act
+            var result = await service.SubmitWordAsync(request);
+
+            // Assert
+            Assert.Equal(GameState.GameFinished, result.State);
+            Assert.Equal(playerId, result.WinnerId);
+            Assert.True(result.Players.First(p => p.Id == playerId).Score >= 50);
+        }
+
     }   
 }
