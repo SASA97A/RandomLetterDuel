@@ -145,7 +145,13 @@ namespace RandomLetterDuel.BLL
             //Returnera uppdaterad spelstatus till UI
             return MapToResponse(gameRoom);
             
-        }      
+        }
+
+        public async Task<GameRoomResponseDto?> GetGameByIdAsync(Guid id)
+        {
+            var gameRoom = await _gameRoomRepository.GetByIdAsync(id);
+            return gameRoom != null ? MapToResponse(gameRoom) : null;
+        }
 
         private string GenerateRoomCode(int length)
         {

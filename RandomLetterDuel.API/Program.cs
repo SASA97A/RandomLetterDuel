@@ -25,7 +25,16 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenAnyIP(7197, lo => lo.UseHttps());
 });
 
-
+//CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowUI", policy =>
+    {
+        policy.WithOrigins("https://localhost:7287") 
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 
 builder.Services.AddOpenApi();
@@ -45,6 +54,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseCors("AllowUI");
 
 app.UseAuthorization();
 

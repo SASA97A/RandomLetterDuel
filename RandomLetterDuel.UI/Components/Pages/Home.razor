@@ -1,7 +1,77 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@inject GameClientService GameService
+@inject NavigationManager Nav
+@implements IDisposable
 
-<PageTitle>Home</PageTitle>
+<div class="container mt-5">
+    <h1 class="text-center">Random Letter Duel</h1>
 
-<h1>Hello, world!</h1>
+    <div class="row justify-content-center mt-4">
+        @if (GameService.Game != null && GameService.Game.State == GameState.WaitingForPlayers)
+        {
+            @* VISA KODEN NÄR MAN VÄNTAR *@
+            <div class="col-md-6 card p-4 text-center shadow">
+                <h3>Väntar på spelare 2...</h3>
+                <p>Ge koden till din vän:</p>
+                <h2 class="display-4 fw-bold text-primary">@GameService.Game.RoomCode</h2>
+            </div>
+        }
+        else
+        {
+            @* VISA START-FORMULÄREN *@
+            <div class="col-md-5 card p-4 shadow-sm m-2">
+                <h3>Starta nytt spel</h3>
+                <input @bind="playerName" @bind:event="oninput" class="form-control mb-2" placeholder="Ditt namn" />
+                <button @onclick="() => GameService.CreateGame(playerName)" class="btn btn-primary w-100"
+                        disabled="@string.IsNullOrWhiteSpace(playerName)">
+                    Skapa
+                </button>
+            </div>
 
-Welcome to your new app.
+            <div class="col-md-5 card p-4 shadow-sm m-2">
+                <h3>Gå med</h3>
+                <input @bind="joinName" @bind:event="oninput" class="form-control mb-2" placeholder="Namn" />
+                <input @bind="roomCode" @bind:event="oninput" class="form-control mb-2" placeholder="Kod" />
+                <button @onclick="() => GameService.JoinGame(joinName, roomCode)" class="btn btn-success w-100"
+                        disabled="@(string.IsNullOrWhiteSpace(joinName) || string.IsNullOrWhiteSpace(roomCode))">
+                    Gå med
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(GameService.ErrorMessage))
+    {
+        <div class="alert alert-danger mt-3">@GameService.ErrorMessage</div>
+    }
+</div>
+
+@code {
+    private string playerName = "";
+    private string joinName = "";
+    private string roomCode = "";
+
+    protected override void OnInitialized()
+    {
+        // Prenumerera på ändringar i tjänsten
+        GameService.OnChange += StateHasChanged;
+        GameService.OnChange += CheckNavigation;
+    }
+
+    private void CheckNavigation()
+    {
+        // Om spelet startar, hoppa automatiskt till spelsidan!
+        if (GameService.Game?.State == GameState.InProgress)
+        {
+            Nav.NavigateTo($"/game/{GameService.Game.Id}/{GameService.MyPlayerId}");
+        }
+    }
+
+    public void Dispose()
+    {
+        // Avbryt prenumeration när man lämnar sidan
+        GameService.OnChange -= StateHasChanged;
+        GameService.OnChange -= CheckNavigation;
+    }
+}

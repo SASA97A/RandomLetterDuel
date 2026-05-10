@@ -29,6 +29,19 @@ namespace RandomLetterDuel.API.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<GameRoomResponseDto>> GetGame(Guid id)
+        {
+            var result = await _gameService.GetGameByIdAsync(id);
+
+            if (result == null)
+            {
+                return NotFound("Spelet kunde inte hittas.");
+            }
+
+            return Ok(result);
+        }
+
         [HttpPost("join")]
         public async Task<ActionResult<GameRoomResponseDto>> JoinGame([FromBody] JoinGameRequestDto request)
         {
@@ -52,12 +65,12 @@ namespace RandomLetterDuel.API.Controllers
             }
             catch (ArgumentException ex)
             {
-                // Felaktiga ord, för korta ord, etc.
+                // Felaktiga ord, för korta ord.
                 return BadRequest(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
-                // Fel tur, spelet inte igång, etc.
+                // Fel tur, spelet inte igång.
                 return Conflict(ex.Message);
             }
             catch (Exception ex)

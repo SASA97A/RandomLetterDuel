@@ -1,0 +1,130 @@
+﻿@page "/game/{GameId:guid}/{MyPlayerId:guid}"
+@rendermode InteractiveServer
+@inject GameClientService GameService
+@inject NavigationManager Nav
+@implements IDisposable
+
+<div class="container mt-4">
+    @if (GameService.Game == null)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Hämtar spelstatus...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-dark text-white">
+                        <h4 class="mb-0">Poängställning</h4>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var p in GameService.Game.Players)
+                        {
+                            <div class="d-flex justify-content-between border-bottom py-2">
+                                <span class="@(p.Id == GameService.Game.CurrentTurnPlayerId ? "fw-bold text-primary" : "")">
+                                    @(p.Id == MyPlayerId ? "⭐ Du" : p.Name)
+                                    @(p.Id == GameService.Game.CurrentTurnPlayerId ? " (Tur)" : "")
+                                </span>
+                                <span class="badge bg-secondary rounded-pill">@p.Score p</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow p-4 text-center mb-4">
+                    @if (GameService.Game.State == GameState.GameFinished)
+                    {
+                        <div class="py-5">
+                            <h1 class="display-1">🏆</h1>
+                            <h2 class="text-success">Spelet är slut!</h2>
+                            <h3>Vinnare: @(GameService.Game.Players.FirstOrDefault(p => p.Id == GameService.Game.WinnerId)?.Name ?? "Oavgjort")</h3>
+                            <a href="/" class="btn btn-primary mt-3">Tillbaka till start</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <h5 class="text-muted">Bokstav att börja på:</h5>
+                        <h1 class="display-1 fw-bold text-primary">@(GameService.Game.RequiredLetter?.ToString() ?? "Valfri")</h1>
+
+                        <div class="mt-4">
+                            @if (GameService.Game.CurrentTurnPlayerId == MyPlayerId)
+                            {
+                                <div class="input-group input-group-lg">
+                                    <input @bind="newWord" @bind:event="oninput" @onkeyup="HandleKeyUp"
+                                           class="form-control text-uppercase" placeholder="Skriv ord..." autofocus />
+                                    <button @onclick="SendWord" class="btn btn-primary">Skicka</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="alert alert-warning py-3">
+                                    <div class="spinner-grow spinner-grow-sm me-2"></div>
+                                    Väntar på motståndaren...
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(GameService.ErrorMessage))
+                    {
+                        <div class="alert alert-danger mt-3">@GameService.ErrorMessage</div>
+                    }
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header small">Använda ord</div>
+                    <div class="card-body d-flex flex-wrap gap-2">
+                        @foreach (var word in GameService.Game.UsedWords.AsEnumerable().Reverse())
+                        {
+                            <span class="badge bg-light text-dark border">@word</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid GameId { get; set; }
+    [Parameter] public Guid MyPlayerId { get; set; }
+
+    private string newWord = "";
+
+    protected async override void OnInitialized()
+    {
+        // Prenumerera på uppdateringar från tjänsten
+        GameService.OnChange += StateHasChanged;
+
+        // Om vi laddar om sidan behöver tjänsten veta vilket spel vi är i
+        if (GameService.Game == null)
+        {
+            // Reconnect?
+            await GameService.Reconnect(GameId, MyPlayerId);
+        }
+    }
+
+    private async Task SendWord()
+    {
+        if (string.IsNullOrWhiteSpace(newWord)) return;
+
+        await GameService.SubmitWord(newWord);
+        newWord = ""; 
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SendWord();
+    }
+
+    public void Dispose()
+    {
+        // Sluta lyssna när vi lämnar sidan
+        GameService.OnChange -= StateHasChanged;
+    }
+}
